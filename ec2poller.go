@@ -111,13 +111,16 @@ func NewEc2() *Conn {
 	return c
 }
 
-func (d *StatusStore) AddDataToFile() {
+func (d *StatusStore) AddDataToFile(status string) {
 
 	for k, v := range d.status {
 
-		err := d.save(k, v)
-		if err != nil {
-			log.Printf("some shit went wrong save %s", k)
+		if v == status {
+
+			err := d.save(k, v)
+			if err != nil {
+				log.Printf("some shit went wrong save %s", k)
+			}
 		}
 	}
 }
@@ -133,7 +136,7 @@ func main() {
 	d.status = dataSet
 	// lets save some data
 
-	d.AddDataToFile()
+	d.AddDataToFile(*status)
 
 	/*
 		for {
