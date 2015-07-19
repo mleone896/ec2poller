@@ -116,10 +116,14 @@ func (d *StatusStore) AddDataToFile(status string) {
 	for k, v := range d.status {
 
 		if v == status {
+			if d.Set(k, v) {
+				fmt.Println("this is already set")
+			} else {
 
-			err := d.save(k, v)
-			if err != nil {
-				log.Printf("some shit went wrong save %s", k)
+				err := d.save(k, v)
+				if err != nil {
+					log.Printf("some shit went wrong save %s", k)
+				}
 			}
 		}
 	}

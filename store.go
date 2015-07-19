@@ -36,13 +36,13 @@ func (s *StatusStore) Get(key string) string {
 	return s.status[key]
 }
 
-func (s *StatusStore) Set(key, url string) bool {
+func (s *StatusStore) Set(key, status string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, present := s.status[key]; present {
 		return false
 	}
-	s.status[key] = url
+	s.status[key] = status
 	return true
 }
 
@@ -52,11 +52,11 @@ func (s *StatusStore) Count() int {
 	return len(s.status)
 }
 
-func (s *StatusStore) Put(url string) string {
+func (s *StatusStore) Put(status string) string {
 	for {
 		key := genKey(s.Count())
-		if ok := s.Set(key, url); ok {
-			if err := s.save(key, url); err != nil {
+		if ok := s.Set(key, status); ok {
+			if err := s.save(key, status); err != nil {
 				log.Println("StatusStore:", err)
 			}
 			return key
@@ -83,7 +83,7 @@ func (s *StatusStore) load() error {
 	return err
 }
 
-func (s *StatusStore) save(key, url string) error {
+func (s *StatusStore) save(key, status string) error {
 	e := json.NewEncoder(s.file)
-	return e.Encode(record{key, url})
+	return e.Encode(record{key, status})
 }
