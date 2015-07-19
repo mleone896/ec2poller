@@ -17,6 +17,8 @@ var (
 	status   = flag.String("status", "stopped|pending|terminated", "the status you would like to poll")
 )
 
+var store *StatusStore
+
 type Conn struct {
 	aw2 *ec2.EC2
 }
