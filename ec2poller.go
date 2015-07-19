@@ -52,12 +52,21 @@ func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) map[string]str
 			var id, state string
 			id = *inst.PrivateDNSName
 			state = *inst.State.Name
-			statstr := state + ":" + id
-
-			insMap[id] = statstr
+			insMap[id] = state
 		}
 	}
 	return insMap
+}
+
+func (c *Conn) GetEc2Data() map[string]string {
+
+	resp, err := c.aw2.DescribeInstances(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	newMap := c.iterateResToMap(resp)
+	return newMap
 }
 
 func (c *Conn) startLoop(status string) bool {
@@ -102,23 +111,43 @@ func NewEc2() *Conn {
 	return c
 }
 
+func (d *StatusStore) AddDataToFile() {
+
+	for k, v := range d.status {
+
+		err := d.save(k, v)
+		if err != nil {
+			log.Printf("some shit went wrong save %s", k)
+		}
+	}
+}
+
 func main() {
 	// Create an EC2 service object in the "us-west-2" region
 	// Note that you can also configure your region globally by
 	// exporting the AWS_REGION environment variable
 	flag.Parse()
 	c := NewEc2()
+	d := NewStatusStore(*dataFile)
+	dataSet := c.GetEc2Data()
+	d.status = dataSet
+	// lets save some data
 
-	/* here is where the crazyness happens
-	   we sit in a for loop waiting to hit timetout of the channel
-	   if we do we will start again (hoopefully getting new data)
+	d.AddDataToFile()
+
+	/*
+		for {
+			if c.startLoop(*status) {
+				fmt.Println("starting up again")
+				c.startLoop(*status)
+			}
+		}
+
 	*/
 
-	for {
-		if c.startLoop(*status) {
-			fmt.Println("starting up again")
-			c.startLoop(*status)
-		}
-	}
+}
 
+func Add(value string) {
+	key := store.Put(value)
+	fmt.Println(key)
 }
