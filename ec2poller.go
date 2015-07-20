@@ -89,6 +89,10 @@ func (d *StatusStore) AddDataToFile(status string, c *Conn) {
 	}
 }
 
+func Run() {
+	// do something here to poll refresh data and other things
+}
+
 func Add(value string) {
 	key := store.Put(value)
 	fmt.Println(key)
