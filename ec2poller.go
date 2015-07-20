@@ -12,6 +12,7 @@ import (
 var (
 	dataFile = flag.String("file", "store.json", "data store file name")
 	status   = flag.String("status", "stopped|pending|terminated", "the status you would like to poll")
+	useToml  = flag.Bool("toml", false, "Switch to enable auth through toml")
 )
 
 var store *StatusStore
