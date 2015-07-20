@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -52,6 +53,20 @@ func (s *StatusStore) Count() int {
 	return len(s.status)
 }
 
+func (s *StatusStore) Check(key string) bool {
+
+	if _, ok := s.status[key]; ok {
+		fmt.Println(s.status[key])
+		fmt.Println(ok)
+		return true
+	} else {
+		fmt.Println(s.status[key])
+		fmt.Println(ok)
+
+		return false
+	}
+
+}
 func (s *StatusStore) Put(status string) string {
 	for {
 		key := genKey(s.Count())
