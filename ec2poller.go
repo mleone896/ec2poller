@@ -4,9 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"regexp"
-	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -20,7 +17,8 @@ var (
 var store *StatusStore
 
 type Conn struct {
-	aw2 *ec2.EC2
+	aw2  *ec2.EC2
+	data map[string]string
 }
 
 // create a struct to map toml config file
@@ -43,7 +41,7 @@ func recieveStatus(dataMap map[string]string) <-chan string {
 
 }
 
-func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) map[string]string {
+func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) {
 	insMap := make(map[string]string)
 	for idx, _ := range resp.Reservations {
 		for _, inst := range resp.Reservations[idx].Instances {
@@ -55,55 +53,20 @@ func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) map[string]str
 			insMap[id] = state
 		}
 	}
-	return insMap
+	c.data = insMap
 }
 
-func (c *Conn) GetEc2Data() map[string]string {
+func (c *Conn) GetEc2Data() {
 
 	resp, err := c.aw2.DescribeInstances(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	newMap := c.iterateResToMap(resp)
-	return newMap
-}
-
-func (c *Conn) startLoop(status string) bool {
-	// Call the DescribeInstances Operation
-	resp, err := c.aw2.DescribeInstances(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// re-format to method call
-	newMap := c.iterateResToMap(resp)
-
-	r := recieveStatus(newMap)
-
-	// set a timeout for the channel
-	timeout := time.After(5 * time.Second)
-
-	// begin channel operations
-	// TODO: this should have interfaces and structs and a poller
-	for {
-		select {
-		case result := <-r:
-			matched, _ := regexp.MatchString(status, result)
-			if matched {
-				res := strings.Split(result, ":")
-				status, ip := res[0], res[1]
-				fmt.Printf("Status:  %v PrivateIP:  %v  \n", status, ip)
-			}
-		case <-timeout:
-			return false
-		}
-	}
+	c.iterateResToMap(resp)
 
 }
 
-// TODO: right now this pulls creds from env but has the
-// capability of using toml the struct is here just need
-// to check on if we are using env or fallback to toml
 func NewEc2() *Conn {
 	c := new(Conn)
 	c.aw2 = ec2.New(&aws.Config{Region: "us-west-2"})
@@ -111,10 +74,12 @@ func NewEc2() *Conn {
 	return c
 }
 
-func (d *StatusStore) AddDataToFile(status string) {
+func (d *StatusStore) AddDataToFile(status string, c *Conn) {
+	fmt.Println("im in adddatatofile")
 
-	for k, v := range d.status {
+	fmt.Println(d.status)
 
+	for k, v := range c.data {
 		if v == status {
 			err := d.save(k, v)
 			if err != nil {
@@ -137,13 +102,10 @@ func main() {
 	d := NewStatusStore(*dataFile)
 
 	// Get a data set to work with
-	dataSet := c.GetEc2Data()
-
-	// set the status map
-	d.status = dataSet
+	c.GetEc2Data()
 
 	// lets save some data
-	d.AddDataToFile(*status)
+	d.AddDataToFile(*status, c)
 
 }
 
