@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -20,6 +21,11 @@ var store *StatusStore
 type Conn struct {
 	aw2  *ec2.EC2
 	data map[string]string
+	save chan ec2record
+}
+
+type ec2record struct {
+	key, status string
 }
 
 // create a struct to map toml config file
@@ -45,6 +51,17 @@ func (c *Conn) SetEc2Data(resp *ec2.DescribeInstancesOutput) {
 	c.data = insMap
 }
 
+func (c *Conn) IterateMapToChan() {
+
+	go func() {
+		for k, v := range c.data {
+
+			c.save <- ec2record{k, v}
+		}
+	}()
+
+}
+
 func (c *Conn) GetEc2Data() {
 
 	resp, err := c.aw2.DescribeInstances(nil)
@@ -59,14 +76,16 @@ func (c *Conn) GetEc2Data() {
 func NewEc2() *Conn {
 	c := new(Conn)
 	c.aw2 = ec2.New(&aws.Config{Region: "us-west-2"})
+	c.save = make(chan ec2record)
 
 	return c
 }
 
-func (d *StatusStore) AddDataToFile(status string, c *Conn) {
+func (d *StatusStore) DataToFile(status string, c *Conn) {
 	for k, v := range c.data {
 		if v == status {
 			if _, ok := d.status[k]; ok {
+				fmt.Println("waiting on new operation")
 			} else {
 				err := d.save(k, v)
 				if err != nil {
@@ -79,12 +98,34 @@ func (d *StatusStore) AddDataToFile(status string, c *Conn) {
 
 func (c *Conn) Run(d *StatusStore) {
 
-	// Get a data set to work with
+	// begin channel operations
+	for {
+		// set timeout for loop
+		timeout := time.After(5 * time.Second)
+		// set initial dataset
+		c.GetEc2Data()
+		// compare or set in file db
+		d.DataToFile(*status, c)
+
+		c.IterateMapToChan()
+
+		select {
+		case result := <-c.save:
+			if result.status == "stopped" {
+				fmt.Println(result.status)
+			}
+		case <-timeout:
+			continue
+
+		}
+	}
+
+}
+
+func RefreshData(d *StatusStore, c *Conn) {
 	c.GetEc2Data()
-
-	// lets save some data
-	d.AddDataToFile(*status, c)
-
+	d.DataToFile(*status, c)
+	c.IterateMapToChan()
 }
 
 func Add(value string) {
