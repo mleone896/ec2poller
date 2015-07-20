@@ -121,7 +121,7 @@ func (d *StatusStore) AddDataToFile(status string) {
 			} else {
 				err := d.save(k, v)
 				if err != nil {
-					log.Printf("some shit went wrong save %s", k)
+					log.Printf("something went wrong save %s", k)
 				}
 			}
 		}
