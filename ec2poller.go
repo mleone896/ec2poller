@@ -30,19 +30,7 @@ type AwsConfig struct {
 	Region       string `toml:"AWS_REGION"`
 }
 
-func recieveStatus(dataMap map[string]string) <-chan string {
-	c := make(chan string)
-	go func() {
-		for _, v := range dataMap {
-			c <- fmt.Sprintf("%s", v)
-			//			time.Sleep(time.Duration(rand.Intn(1e3)) * time.Millisecond)
-		}
-	}()
-	return c
-
-}
-
-func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) {
+func (c *Conn) SetEc2Data(resp *ec2.DescribeInstancesOutput) {
 	insMap := make(map[string]string)
 	for idx, _ := range resp.Reservations {
 		for _, inst := range resp.Reservations[idx].Instances {
@@ -64,7 +52,7 @@ func (c *Conn) GetEc2Data() {
 		log.Fatal(err)
 	}
 
-	c.iterateResToMap(resp)
+	c.SetEc2Data(resp)
 
 }
 
