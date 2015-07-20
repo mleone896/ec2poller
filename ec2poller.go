@@ -24,7 +24,7 @@ type Conn struct {
 }
 
 // create a struct to map toml config file
-
+// TODO: add this as an switch in init()
 type AwsConfig struct {
 	AwsSecretKey string `toml:"AWS_ACCESS_KEY_ID"`
 	AwsAccessKey string `toml:"AWS_SECRET_ACCESS_KEY"`
@@ -116,10 +116,9 @@ func (d *StatusStore) AddDataToFile(status string) {
 	for k, v := range d.status {
 
 		if v == status {
-			if d.Set(k, v) {
+			if d.Get(k) == status {
 				fmt.Println("this is already set")
 			} else {
-
 				err := d.save(k, v)
 				if err != nil {
 					log.Printf("some shit went wrong save %s", k)
@@ -134,23 +133,21 @@ func main() {
 	// Note that you can also configure your region globally by
 	// exporting the AWS_REGION environment variable
 	flag.Parse()
+
+	// instantiate new ec2 "object"
 	c := NewEc2()
+
+	// Get new Status store
 	d := NewStatusStore(*dataFile)
+
+	// Get a data set to work with
 	dataSet := c.GetEc2Data()
+
+	// set the status map
 	d.status = dataSet
+
 	// lets save some data
-
 	d.AddDataToFile(*status)
-
-	/*
-		for {
-			if c.startLoop(*status) {
-				fmt.Println("starting up again")
-				c.startLoop(*status)
-			}
-		}
-
-	*/
 
 }
 
