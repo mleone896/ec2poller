@@ -89,8 +89,10 @@ func (d *StatusStore) AddDataToFile(status string, c *Conn) {
 	}
 }
 
-func Run() {
-	// do something here to poll refresh data and other things
+func (c *Conn) Run() {
+
+	// Get a data set to work with
+	c.GetEc2Data()
 }
 
 func Add(value string) {
@@ -107,11 +109,10 @@ func main() {
 	// instantiate new ec2 "object"
 	c := NewEc2()
 
+	c.Run()
+
 	// Get new Status store
 	d := NewStatusStore(*dataFile)
-
-	// Get a data set to work with
-	c.GetEc2Data()
 
 	// lets save some data
 	d.AddDataToFile(*status, c)
