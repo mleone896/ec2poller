@@ -75,18 +75,23 @@ func NewEc2() *Conn {
 }
 
 func (d *StatusStore) AddDataToFile(status string, c *Conn) {
-	fmt.Println("im in adddatatofile")
-
-	fmt.Println(d.status)
-
 	for k, v := range c.data {
 		if v == status {
-			err := d.save(k, v)
-			if err != nil {
-				log.Printf("something went wrong save %s", k)
+			if _, ok := d.status[k]; ok {
+				fmt.Printf("we already have that key %s", d.status[k])
+			} else {
+				err := d.save(k, v)
+				if err != nil {
+					log.Printf("something went wrong save %s", k)
+				}
 			}
 		}
 	}
+}
+
+func Add(value string) {
+	key := store.Put(value)
+	fmt.Println(key)
 }
 
 func main() {
@@ -107,9 +112,4 @@ func main() {
 	// lets save some data
 	d.AddDataToFile(*status, c)
 
-}
-
-func Add(value string) {
-	key := store.Put(value)
-	fmt.Println(key)
 }
