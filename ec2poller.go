@@ -78,7 +78,7 @@ func (d *StatusStore) AddDataToFile(status string, c *Conn) {
 	for k, v := range c.data {
 		if v == status {
 			if _, ok := d.status[k]; ok {
-				fmt.Printf("we already have that key %s", d.status[k])
+				fmt.Printf("we already have that key %s\n", d.status[k])
 			} else {
 				err := d.save(k, v)
 				if err != nil {
