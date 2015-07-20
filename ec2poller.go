@@ -43,7 +43,7 @@ func recieveStatus(dataMap map[string]string) <-chan string {
 
 }
 
-func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) map[string]string {
+func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput, s *StatusStore) {
 	insMap := make(map[string]string)
 	for idx, _ := range resp.Reservations {
 		for _, inst := range resp.Reservations[idx].Instances {
@@ -54,11 +54,12 @@ func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) map[string]str
 			state = *inst.State.Name
 			insMap[id] = state
 		}
+		s.newWorld = insMap
 	}
-	return insMap
+
 }
 
-func (c *Conn) GetEc2Data() map[string]string {
+func (c *Conn) GetEc2Data(s *StatusStore) {
 
 	resp, err := c.aw2.DescribeInstances(nil)
 	if err != nil {
@@ -66,7 +67,11 @@ func (c *Conn) GetEc2Data() map[string]string {
 	}
 
 	newMap := c.iterateResToMap(resp)
-	return newMap
+	if s.isFileLoaded {
+		fmt.Println("We have a database file not reloading")
+	} else {
+		s.status = newMap
+	}
 }
 
 func (c *Conn) startLoop(status string) bool {
@@ -133,14 +138,13 @@ func main() {
 	// instantiate new ec2 "object"
 	c := NewEc2()
 
-	// Get new Status store
 	d := NewStatusStore(*dataFile)
 
+	c.GetEc2Data(d)
+
 	// Get a data set to work with
-	dataSet := c.GetEc2Data()
 
 	// set the status map
-	d.status = dataSet
 
 	// lets save some data
 	d.AddDataToFile(*status)
