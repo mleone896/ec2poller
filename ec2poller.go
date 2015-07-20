@@ -41,7 +41,11 @@ func recieveStatus(dataMap map[string]string) <-chan string {
 
 }
 
+<<<<<<< HEAD
 func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) {
+=======
+func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput, s *StatusStore) {
+>>>>>>> 2e8ab3efb73a74c3b1055bab321e737a63f27390
 	insMap := make(map[string]string)
 	for idx, _ := range resp.Reservations {
 		for _, inst := range resp.Reservations[idx].Instances {
@@ -52,18 +56,66 @@ func (c *Conn) iterateResToMap(resp *ec2.DescribeInstancesOutput) {
 			state = *inst.State.Name
 			insMap[id] = state
 		}
+		s.newWorld = insMap
 	}
+<<<<<<< HEAD
 	c.data = insMap
 }
 
 func (c *Conn) GetEc2Data() {
+=======
+
+}
+
+func (c *Conn) GetEc2Data(s *StatusStore) {
+>>>>>>> 2e8ab3efb73a74c3b1055bab321e737a63f27390
 
 	resp, err := c.aw2.DescribeInstances(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+<<<<<<< HEAD
 	c.iterateResToMap(resp)
+=======
+	newMap := c.iterateResToMap(resp)
+	if s.isFileLoaded {
+		fmt.Println("We have a database file not reloading")
+	} else {
+		s.status = newMap
+	}
+}
+
+func (c *Conn) startLoop(status string) bool {
+	// Call the DescribeInstances Operation
+	resp, err := c.aw2.DescribeInstances(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// re-format to method call
+	newMap := c.iterateResToMap(resp)
+
+	r := recieveStatus(newMap)
+
+	// set a timeout for the channel
+	timeout := time.After(5 * time.Second)
+
+	// begin channel operations
+	// TODO: this should have interfaces and structs and a poller
+	for {
+		select {
+		case result := <-r:
+			matched, _ := regexp.MatchString(status, result)
+			if matched {
+				res := strings.Split(result, ":")
+				status, ip := res[0], res[1]
+				fmt.Printf("Status:  %v PrivateIP:  %v  \n", status, ip)
+			}
+		case <-timeout:
+			return false
+		}
+	}
+>>>>>>> 2e8ab3efb73a74c3b1055bab321e737a63f27390
 
 }
 
@@ -98,11 +150,17 @@ func main() {
 	// instantiate new ec2 "object"
 	c := NewEc2()
 
-	// Get new Status store
 	d := NewStatusStore(*dataFile)
 
+	c.GetEc2Data(d)
+
 	// Get a data set to work with
+<<<<<<< HEAD
 	c.GetEc2Data()
+=======
+
+	// set the status map
+>>>>>>> 2e8ab3efb73a74c3b1055bab321e737a63f27390
 
 	// lets save some data
 	d.AddDataToFile(*status, c)

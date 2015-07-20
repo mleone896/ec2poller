@@ -10,9 +10,11 @@ import (
 )
 
 type StatusStore struct {
-	status map[string]string
-	mu     sync.RWMutex
-	file   *os.File
+	status       map[string]string
+	mu           sync.RWMutex
+	file         *os.File
+	isFileLoaded bool
+	newWorld     map[string]string
 }
 type record struct {
 	Key, Status string
@@ -28,6 +30,7 @@ func NewStatusStore(filename string) *StatusStore {
 	if err := s.load(); err != nil {
 		log.Println("StatusStore:", err)
 	}
+	s.isFileLoaded = true
 	return s
 }
 
@@ -95,6 +98,7 @@ func (s *StatusStore) load() error {
 	if err == io.EOF {
 		return nil
 	}
+	s.isFileLoaded = true
 	return err
 }
 
