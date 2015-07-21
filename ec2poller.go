@@ -85,7 +85,6 @@ func (d *StatusStore) DataToFile(status string, c *Conn) {
 	for k, v := range c.data {
 		if v == status {
 			if _, ok := d.status[k]; ok {
-				fmt.Println("waiting on new operation")
 			} else {
 				err := d.save(k, v)
 				if err != nil {
@@ -103,12 +102,7 @@ func (c *Conn) Run(d *StatusStore) {
 		// set timeout for loop
 		timeout := time.After(5 * time.Second)
 		// set initial dataset
-		c.GetEc2Data()
-		// compare or set in file db
-		d.DataToFile(*status, c)
-
-		c.IterateMapToChan()
-
+		RefreshData(d, c)
 		select {
 		case result := <-c.save:
 			if result.status == "stopped" {
