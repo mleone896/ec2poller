@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -157,7 +159,17 @@ func main() {
 
 	// start the endless loop
 	// TODO: need to load data from data store if exists
-	// TODO: need to save chan data into data store on exit / CTRL-C sig
+	// TODO: Need to remove the line from datastore if it is no longer in the status state
+
+	// This catches CTRL-C since this runs in a loop forever
+	k := make(chan os.Signal, 1)
+	signal.Notify(k, os.Interrupt)
+	go func() {
+		<-k
+		fmt.Printf("Error: user interrupt\n.")
+		d.DataToFile(*status, c)
+		os.Exit(-1)
+	}()
 
 	c.Start(d)
 
