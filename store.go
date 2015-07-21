@@ -83,6 +83,31 @@ func (s *StatusStore) Put(status string) string {
 	panic("shouldn't get here")
 }
 
+func (s *StatusStore) RemoveOldRecords(ec2Map map[string]string, status string) {
+	for k, v := range s.status {
+		if v == status {
+			if ec2Map[k] == status {
+			} else {
+				delete(s.status, k)
+			}
+		}
+	}
+}
+
+func (s *StatusStore) DataToFile(status string, c *Conn) {
+
+	for k, v := range c.data {
+		if v == status {
+			if _, ok := s.status[k]; ok {
+			} else {
+				err := s.save(k, v)
+				if err != nil {
+					log.Printf("something went wrong save %s", k)
+				}
+			}
+		}
+	}
+}
 func (s *StatusStore) load() error {
 	if _, err := s.file.Seek(0, 0); err != nil {
 		return err

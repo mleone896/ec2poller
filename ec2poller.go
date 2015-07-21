@@ -86,20 +86,6 @@ func NewEc2() *Conn {
 	return c
 }
 
-func (d *StatusStore) DataToFile(status string, c *Conn) {
-	for k, v := range c.data {
-		if v == status {
-			if _, ok := d.status[k]; ok {
-			} else {
-				err := d.save(k, v)
-				if err != nil {
-					log.Printf("something went wrong save %s", k)
-				}
-			}
-		}
-	}
-}
-
 func (c *Conn) RunLoop(d *StatusStore) bool {
 
 	RefreshData(d, c)
@@ -136,7 +122,6 @@ func (c *Conn) Start(d *StatusStore) {
 
 func RefreshData(d *StatusStore, c *Conn) {
 	c.GetEc2Data()
-	//d.DataToFile(*status, c)
 	c.IterateMapToChan(*status)
 }
 
@@ -167,6 +152,8 @@ func main() {
 	go func() {
 		<-k
 		fmt.Printf("Error: user interrupt\n.")
+		os.Create(*dataFile)
+		d.RemoveOldRecords(c.data, *status)
 		d.DataToFile(*status, c)
 		os.Exit(-1)
 	}()
