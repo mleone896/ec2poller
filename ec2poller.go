@@ -155,8 +155,9 @@ func main() {
 	// Get new Status store
 	d := NewStatusStore(*dataFile)
 
-	val := d.Get("ip-172-30-36-63.us-west-2.compute.internal")
-	fmt.Println(val)
+	// start the endless loop
+	// TODO: need to load data from data store if exists
+	// TODO: need to save chan data into data store on exit / CTRL-C sig
 
 	c.Start(d)
 
