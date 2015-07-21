@@ -99,6 +99,10 @@ func (s *StatusStore) DataToFile(status string, c *Conn) {
 	for k, v := range c.data {
 		if v == status {
 			if _, ok := s.status[k]; ok {
+				err := s.save(k, v) // a little redundant but needed
+				if err != nil {
+					log.Printf("something went wrong saving %s", k)
+				}
 			} else {
 				err := s.save(k, v)
 				if err != nil {
