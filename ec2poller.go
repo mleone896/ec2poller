@@ -51,12 +51,15 @@ func (c *Conn) SetEc2Data(resp *ec2.DescribeInstancesOutput) {
 	c.data = insMap
 }
 
-func (c *Conn) IterateMapToChan() {
+func (c *Conn) IterateMapToChan(status string) {
 
 	go func() {
 		for k, v := range c.data {
 
-			c.save <- ec2record{k, v}
+			if v == status {
+
+				c.save <- ec2record{k, v}
+			}
 		}
 	}()
 
@@ -102,14 +105,11 @@ func (c *Conn) Run(d *StatusStore) {
 		// set timeout for loop
 		timeout := time.After(5 * time.Second)
 		// set initial dataset
-		RefreshData(d, c)
 		select {
 		case result := <-c.save:
-			if result.status == "stopped" {
-				fmt.Println(result.status)
-			}
+			fmt.Println(result.status)
 		case <-timeout:
-			continue
+			return
 
 		}
 	}
@@ -119,7 +119,7 @@ func (c *Conn) Run(d *StatusStore) {
 func RefreshData(d *StatusStore, c *Conn) {
 	c.GetEc2Data()
 	d.DataToFile(*status, c)
-	c.IterateMapToChan()
+	c.IterateMapToChan(*status)
 }
 
 func Add(value string) {
@@ -139,6 +139,7 @@ func main() {
 	// Get new Status store
 	d := NewStatusStore(*dataFile)
 
+	RefreshData(d, c)
 	c.Run(d)
 
 }
