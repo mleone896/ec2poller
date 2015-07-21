@@ -19,9 +19,9 @@ var (
 var store *StatusStore
 
 type Conn struct {
-	aw2  *ec2.EC2
-	data map[string]string
-	save chan ec2record
+	aw2      *ec2.EC2
+	data     map[string]string
+	chandata chan ec2record
 }
 
 type ec2record struct {
@@ -58,7 +58,7 @@ func (c *Conn) IterateMapToChan(status string) {
 
 			if v == status {
 
-				c.save <- ec2record{k, v}
+				c.chandata <- ec2record{k, v}
 			}
 		}
 	}()
@@ -79,7 +79,7 @@ func (c *Conn) GetEc2Data() {
 func NewEc2() *Conn {
 	c := new(Conn)
 	c.aw2 = ec2.New(&aws.Config{Region: "us-west-2"})
-	c.save = make(chan ec2record)
+	c.chandata = make(chan ec2record)
 
 	return c
 }
@@ -98,27 +98,43 @@ func (d *StatusStore) DataToFile(status string, c *Conn) {
 	}
 }
 
-func (c *Conn) Run(d *StatusStore) {
+func (c *Conn) RunLoop(d *StatusStore) bool {
 
+	RefreshData(d, c)
 	// begin channel operations
 	for {
 		// set timeout for loop
 		timeout := time.After(5 * time.Second)
 		// set initial dataset
 		select {
-		case result := <-c.save:
-			fmt.Println(result.status)
+		case result := <-c.chandata:
+			fmt.Println(result.key)
+
 		case <-timeout:
-			return
+			fmt.Println("we hit the timeout\n")
+			return false
 
 		}
 	}
 
 }
 
+func (c *Conn) Start(d *StatusStore) {
+
+	for {
+
+		if c.RunLoop(d) {
+			fmt.Println("starting another round with refreshed data")
+			c.RunLoop(d)
+		}
+
+	}
+
+}
+
 func RefreshData(d *StatusStore, c *Conn) {
 	c.GetEc2Data()
-	d.DataToFile(*status, c)
+	//d.DataToFile(*status, c)
 	c.IterateMapToChan(*status)
 }
 
@@ -139,7 +155,9 @@ func main() {
 	// Get new Status store
 	d := NewStatusStore(*dataFile)
 
-	RefreshData(d, c)
-	c.Run(d)
+	val := d.Get("ip-172-30-36-63.us-west-2.compute.internal")
+	fmt.Println(val)
+
+	c.Start(d)
 
 }
