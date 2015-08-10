@@ -8,14 +8,16 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/mleone896/flowpush"
 )
 
 var (
 	dataFile = flag.String("file", "store.json", "data store file name")
 	status   = flag.String("status", "stopped|pending|terminated", "the status you would like to poll")
-	useToml  = flag.Bool("toml", false, "A switch to use creds from tomlfile instead of ENV")
+	useToml  = flag.Bool("toml", true, "Get flowdock creds from toml config")
 )
 
 var store *StatusStore
@@ -32,10 +34,9 @@ type ec2record struct {
 
 // create a struct to map toml config file
 // TODO: add this as an switch in init()
-type AwsConfig struct {
-	AwsSecretKey string `toml:"AWS_ACCESS_KEY_ID"`
-	AwsAccessKey string `toml:"AWS_SECRET_ACCESS_KEY"`
-	Region       string `toml:"AWS_REGION"`
+type FlowDockConfig struct {
+	ApiToken         string
+	FlowdockAPIToken string
 }
 
 func (c *Conn) SetEc2Data(resp *ec2.DescribeInstancesOutput) {
@@ -78,15 +79,7 @@ func (c *Conn) GetEc2Data() {
 
 }
 
-func NewEc2() *Conn {
-	c := new(Conn)
-	c.aw2 = ec2.New(&aws.Config{Region: "us-west-2"})
-	c.chandata = make(chan ec2record)
-
-	return c
-}
-
-func (c *Conn) RunLoop(d *StatusStore) bool {
+func (c *Conn) RunLoop(d *StatusStore, config *FlowDockConfig) bool {
 
 	RefreshData(d, c)
 	// begin channel operations
@@ -96,7 +89,12 @@ func (c *Conn) RunLoop(d *StatusStore) bool {
 		// set initial dataset
 		select {
 		case result := <-c.chandata:
-			fmt.Println(result.key)
+			message := fmt.Sprintf("Status changed to %s for instance %s", result.status, result.key)
+			if result.status == "stopped" {
+				flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+			} else if result.status == "terminated" {
+				flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+			}
 
 		case <-timeout:
 			fmt.Println("we hit the timeout\n")
@@ -107,13 +105,13 @@ func (c *Conn) RunLoop(d *StatusStore) bool {
 
 }
 
-func (c *Conn) Start(d *StatusStore) {
+func (c *Conn) Start(d *StatusStore, config *FlowDockConfig) {
 
 	for {
 
-		if c.RunLoop(d) {
+		if c.RunLoop(d, config) {
 			fmt.Println("starting another round with refreshed data")
-			c.RunLoop(d)
+			c.RunLoop(d, config)
 		}
 
 	}
@@ -130,11 +128,25 @@ func Add(value string) {
 	fmt.Println(key)
 }
 
+func NewEc2() *Conn {
+	c := new(Conn)
+	c.aw2 = ec2.New(&aws.Config{Region: "us-west-2"})
+	c.chandata = make(chan ec2record)
+
+	return c
+}
+
 func main() {
 	// Create an EC2 service object in the "us-west-2" region
 	// Note that you can also configure your region globally by
 	// exporting the AWS_REGION environment variable
 	flag.Parse()
+
+	var config FlowDockConfig
+	if _, err := toml.DecodeFile("/home/mleone/credentials.toml", &config); err != nil {
+		// handle error cause you know i don't trust third party libs
+		log.Fatal("something went terribly wrong loading toml")
+	}
 
 	// instantiate new ec2 "object"
 	c := NewEc2()
@@ -158,6 +170,6 @@ func main() {
 		os.Exit(-1)
 	}()
 
-	c.Start(d)
+	c.Start(d, &config)
 
 }
