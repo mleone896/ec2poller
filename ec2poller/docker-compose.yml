@@ -1,0 +1,10 @@
+stopped:
+  image: ec2poller:latest
+  command:  /work/ec2poller -status=stopped -file=/var/store/store.json
+  volumes:
+    - /var/store/:/var/store/
+terminated:
+  image: ec2poller:latest
+  command:  /work/ec2poller -status=terminated -file=/var/store/store.json
+  volumes:
+    - /var/store/:/var/store/
