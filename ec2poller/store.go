@@ -14,7 +14,6 @@ type StatusStore struct {
 	mu           sync.RWMutex
 	file         *os.File
 	isFileLoaded bool
-	newWorld     map[string]string
 }
 type record struct {
 	Key, Status string

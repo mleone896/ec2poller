@@ -33,7 +33,6 @@ type ec2record struct {
 }
 
 // create a struct to map toml config file
-// TODO: add this as an switch in init()
 type FlowDockConfig struct {
 	ApiToken         string
 	FlowdockAPIToken string
@@ -81,7 +80,7 @@ func (c *Conn) GetEc2Data() {
 
 func (c *Conn) RunLoop(d *StatusStore, config *FlowDockConfig) bool {
 
-	RefreshData(d, c)
+	RefreshData(c)
 	// begin channel operations
 	for {
 		// set timeout for loop
@@ -91,9 +90,28 @@ func (c *Conn) RunLoop(d *StatusStore, config *FlowDockConfig) bool {
 		case result := <-c.chandata:
 			message := fmt.Sprintf("Status changed to %s for instance %s", result.status, result.key)
 			if result.status == "stopped" {
-				flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+				if _, ok := d.status[result.key]; ok {
+					log.Println("already logged not reporting again")
+				} else {
+					flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+					if err := d.save(result.key, result.status); err != nil {
+						log.Println(err)
+					}
+					d.status[result.key] = d.status[result.status]
+
+				}
 			} else if result.status == "terminated" {
-				flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+				if _, ok := d.status[result.key]; ok {
+					log.Println("already logged not reporting again")
+				} else {
+					flowpush.PushMessageToFlowWithKey(config.FlowdockAPIToken, message, "ec2poller")
+					if err := d.save(result.key, result.status); err != nil {
+						log.Println(err)
+					}
+					d.status[result.key] = d.status[result.status]
+				}
+			} else if result.status == "terminated" {
+
 			}
 
 		case <-timeout:
@@ -118,7 +136,7 @@ func (c *Conn) Start(d *StatusStore, config *FlowDockConfig) {
 
 }
 
-func RefreshData(d *StatusStore, c *Conn) {
+func RefreshData(c *Conn) {
 	c.GetEc2Data()
 	c.IterateMapToChan(*status)
 }
@@ -143,7 +161,7 @@ func main() {
 	flag.Parse()
 
 	var config FlowDockConfig
-	if _, err := toml.DecodeFile("/home/mleone/credentials.toml", &config); err != nil {
+	if _, err := toml.DecodeFile("./credentials.toml", &config); err != nil {
 		// handle error cause you know i don't trust third party libs
 		log.Fatal("something went terribly wrong loading toml")
 	}
