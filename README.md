@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/mleone896/ec2poller.svg)](https://travis-ci.org/mleone896/ec2poller)
+[![license](https://github.com/mleone896/LICENSE.txt)](https://github.com/mleone896/LICENSE.txt)
 # ec2poller
 polls an ec2 account looking for changes in status
 
