@@ -3,5 +3,3 @@ store.json
 Dockerfile
 ec2poller
 *.toml
-*.swp
-*.swo
