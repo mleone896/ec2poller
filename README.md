@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/mleone896/flowpush.svg?branch=master)](https://travis-ci.org/mleone896/flowpush)
-
+[![Build Status](https://travis-ci.org/mleone896/ec2poller.svg)](https://travis-ci.org/mleone896/ec2poller)
 # ec2poller
 polls an ec2 account looking for changes in status
 
