@@ -45,7 +45,7 @@ func (c *Conn) SetEc2Data(resp *ec2.DescribeInstancesOutput) {
 			// fmt.Printf("   Instance State: %v InstanceID: %v \n", *inst.State.Name, *inst.InstanceID)
 			// dereference pointer
 			var id, state string
-			id = *inst.PrivateDNSName
+			id = *inst.InstanceID
 			state = *inst.State.Name
 			insMap[id] = state
 		}
